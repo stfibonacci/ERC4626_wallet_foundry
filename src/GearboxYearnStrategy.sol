@@ -50,7 +50,7 @@ contract GearboxYearnStrategy is ERC4626, Ownable {
     function openAccount(uint256 assets) internal returns (address) {
         asset.approve(address(creditManager), type(uint256).max);
         creditManager.openCreditAccount(assets, address(this), leverage, 0);
-        creditAccount = creditManager.creditAccounts(address(this));
+        creditAccount = creditManager.getCreditAccountOrRevert(address(this));
 
         return creditAccount;
     }
@@ -126,15 +126,29 @@ contract GearboxYearnStrategy is ERC4626, Ownable {
         return creditFilter.calcTotalValue(address(creditAccount));
     }
 
+    // function getThresholdWeightedValue() public view returns (uint256) {
+    //     return creditFilter.ThresholdWeightedValue(address(creditAccount));
+    // }
+
+    // function getTotalAccruedInterest() public view returns (uint256) {
+    //     return
+    //         creditFilter.calcCreditAccountAccruedInterest(
+    //             address(creditAccount)
+    //         );
+    // }
+
     function getCollateralValue() public view returns (uint256) {
         if (creditManager.hasOpenedCreditAccount(address(this))) {
             uint256 totalValue = getTotalValue();
-            //return ((totalValue * 100) / (leverage + 100));
-            uint256 totalBorrwed = getBorrowedAmount();
-            return ((totalValue - totalBorrwed) * 9999) / 10000;
+            uint256 totalRepay = getRepayAmount();
+            return ((totalValue - totalRepay) * 9999) / 10000;
         } else {
             return 0;
         }
+    }
+
+    function getRepayAmount() public view returns (uint256) {
+        return creditManager.calcRepayAmount(address(this), false);
     }
 
     // total available asset balance in the strategy contract
